@@ -998,7 +998,7 @@ function buildBookshelf(){
     }
     const tex=new THREE.CanvasTexture(cv);
     const shelf=new THREE.Mesh(
-      new THREE.PlaneGeometry(BD*0.82,1.1),
+      new THREE.PlaneGeometry(BW,1.1),
       new THREE.MeshBasicMaterial({map:tex,side:THREE.DoubleSide})
     );
     shelf.rotation.y=-Math.PI/2;
