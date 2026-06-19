@@ -1669,16 +1669,22 @@ function initThree(){
 
   initOrbit(renderer.domElement);
 
-  buildRoom();
-  buildBookshelf();
-  buildTable();
-  buildCake();
-  addDecorations();
-  addCandles();
-  addRoomFlowers();
-  addWallNotes();
-  addTablePhoto();
-  addMoviePosters();
+  const _fns=[
+    ['buildRoom',buildRoom],['buildBookshelf',buildBookshelf],
+    ['buildTable',buildTable],['buildCake',buildCake],
+    ['addDecorations',addDecorations],['addCandles',addCandles],
+    ['addRoomFlowers',addRoomFlowers],['addWallNotes',addWallNotes],
+    ['addTablePhoto',addTablePhoto],['addMoviePosters',addMoviePosters],
+  ];
+  for(const [name,fn] of _fns){
+    try{fn();}catch(e){
+      console.error(name+' FAILED:',e);
+      const dbg=document.createElement('div');
+      dbg.style.cssText='position:fixed;top:10px;left:10px;z-index:9999;background:red;color:#fff;padding:10px;font-size:14px;border-radius:8px;max-width:90vw;';
+      dbg.textContent='❌ '+name+': '+e.message;
+      document.body.appendChild(dbg);
+    }
+  }
 
   // Click detection (separate from orbit drag)
   let clickMoved=false,clickX=0,clickY=0;
