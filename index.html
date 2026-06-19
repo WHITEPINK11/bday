@@ -1568,6 +1568,93 @@ function addTablePhoto(){
   sh.rotation.x=-Math.PI/2;sh.position.set(0,0.01,0.15);grp.add(sh);
 }
 
+/* ══ CINEMA POPCORN STANDEE ══ */
+function addPopcornStandee(){
+  const FY=-2, Z_FRONT=7;
+  const BX=9.0, BZ=Z_FRONT-2.2; // right side of poster wall
+
+  // ── bucket body (canvas texture with stripes) ──
+  const cv=document.createElement('canvas');cv.width=512;cv.height=512;
+  const c=cv.getContext('2d');
+  // white base
+  c.fillStyle='#fff8f0';c.fillRect(0,0,512,512);
+  // red vertical stripes
+  for(let i=0;i<16;i++){
+    if(i%2===0){c.fillStyle='#d91c1c';c.fillRect(i*32,0,32,512);}
+  }
+  // top gold band
+  const grd=c.createLinearGradient(0,0,512,0);
+  grd.addColorStop(0,'#f5c518');grd.addColorStop(0.5,'#ffe566');grd.addColorStop(1,'#f5c518');
+  c.fillStyle=grd;c.fillRect(0,0,512,55);
+  // bottom gold band
+  c.fillStyle=grd;c.fillRect(0,460,512,52);
+  // center text
+  c.fillStyle='#f5c518';c.font='bold 58px Arial';c.textAlign='center';
+  c.strokeStyle='#8b0000';c.lineWidth=6;
+  c.strokeText('POPCORN',256,280);c.fillText('POPCORN',256,280);
+  c.font='bold 34px Arial';
+  c.strokeText('🍿 CINEMA 🍿',256,340);c.fillText('🍿 CINEMA 🍿',256,340);
+
+  const bucketTex=new THREE.CanvasTexture(cv);
+  // trapezoid bucket shape: wider top
+  const bucket=new THREE.Mesh(
+    new THREE.CylinderGeometry(1.0,0.72,2.2,24),
+    new THREE.MeshPhongMaterial({map:bucketTex,shininess:30})
+  );
+  bucket.position.set(BX,FY+1.1,BZ);scene.add(bucket);
+
+  // bucket rim (gold ring on top)
+  const rim=new THREE.Mesh(
+    new THREE.TorusGeometry(1.02,0.07,8,24),
+    new THREE.MeshPhongMaterial({color:0xf5c518,shininess:100,emissive:0xf5c518,emissiveIntensity:0.1})
+  );
+  rim.rotation.x=Math.PI/2;rim.position.set(BX,FY+2.22,BZ);scene.add(rim);
+
+  // ── popcorn pile on top ──
+  const pcols=[0xfff5c0,0xffe87a,0xffd94a,0xfff0a0,0xffeca0,0xf5d26a];
+  const rng=(s)=>{let x=s;return()=>{x=(x*16807)%2147483647;return(x-1)/2147483646;};};
+  const r=rng(42);
+  // big popcorn mound
+  for(let i=0;i<38;i++){
+    const a=r()*Math.PI*2;
+    const rad=r()*0.85;
+    const px2=BX+Math.cos(a)*rad;
+    const pz2=BZ+Math.sin(a)*rad;
+    const py=FY+2.22+r()*0.9;
+    const ps=0.14+r()*0.18;
+    const pc=new THREE.Mesh(
+      new THREE.SphereGeometry(ps,6,5),
+      new THREE.MeshPhongMaterial({color:pcols[Math.floor(r()*pcols.length)],shininess:20})
+    );
+    pc.position.set(px2,py,pz2);
+    pc.scale.set(1+r()*0.4,0.7+r()*0.5,1+r()*0.4);
+    scene.add(pc);
+  }
+  // top peak kernels
+  for(let i=0;i<14;i++){
+    const a=r()*Math.PI*2;
+    const rad=r()*0.45;
+    const pc=new THREE.Mesh(
+      new THREE.SphereGeometry(0.13+r()*0.12,6,5),
+      new THREE.MeshPhongMaterial({color:pcols[Math.floor(r()*pcols.length)],shininess:15})
+    );
+    pc.position.set(BX+Math.cos(a)*rad,FY+3.0+r()*0.55,BZ+Math.sin(a)*rad);
+    pc.scale.set(1+r()*0.3,0.6+r()*0.4,1+r()*0.3);
+    scene.add(pc);
+  }
+
+  // ── cast shadow on floor ──
+  const sh=new THREE.Mesh(
+    new THREE.CircleGeometry(1.1,20),
+    new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:0.22})
+  );
+  sh.rotation.x=-Math.PI/2;sh.position.set(BX,FY+0.01,BZ);scene.add(sh);
+
+  // ── spotlight on popcorn ──
+  const pl=new THREE.PointLight(0xfff5cc,1.2,5);
+  pl.position.set(BX,FY+5,BZ);scene.add(pl);
+}
+
 /* ══ MOVIE POSTERS — front wall ══ */
 function addMoviePosters(){
   const Z_FRONT=7;
@@ -1674,7 +1761,7 @@ function initThree(){
     ['buildTable',buildTable],['buildCake',buildCake],
     ['addDecorations',addDecorations],['addCandles',addCandles],
     ['addRoomFlowers',addRoomFlowers],['addWallNotes',addWallNotes],
-    ['addTablePhoto',addTablePhoto],['addMoviePosters',addMoviePosters],
+    ['addTablePhoto',addTablePhoto],['addMoviePosters',addMoviePosters],['addPopcornStandee',addPopcornStandee],
   ];
   for(const [name,fn] of _fns){
     try{fn();}catch(e){
