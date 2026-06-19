@@ -938,13 +938,9 @@ function addBox(w,h,d, x,y,z, mat){
 }
 
 function buildBookshelf(){
-  // Right wall bookshelf — runs along Z axis, faces left (negative X)
-  const FY=-2, RW=22;
-  const WX=RW/2; // right wall x = 11
-  const BW=7.0;  // width along Z
-  const BH=6.5;  // height
-  const BD=1.1;  // depth along X
-  const CZ=-2;   // center Z of room
+  const FY=-2, RW=22, CH=8;
+  const WX=RW/2;   // right wall x=11
+  const BW=7.0, BH=6.5, BD=1.1, CZ=-2;
 
   const rng=(s)=>{let x=s;return()=>{x=(x*16807)%2147483647;return(x-1)/2147483646;};};
   const r=rng(77);
@@ -953,90 +949,77 @@ function buildBookshelf(){
   const woodDark =new THREE.MeshPhongMaterial({color:0x6b3c12,shininess:10});
   const woodMid  =new THREE.MeshPhongMaterial({color:0x9a5c22,shininess:22});
 
-  // ── frame ──
+  // ── structural frame (just 8 box meshes) ──
   // back panel
-  const bk=new THREE.Mesh(new THREE.BoxGeometry(BD*0.08,BH,BW),woodDark);
-  bk.position.set(WX-BD,FY+BH/2,CZ);scene.add(bk);
+  const bk=new THREE.Mesh(new THREE.BoxGeometry(0.09,BH,BW),woodDark);
+  bk.position.set(WX-BD+0.04,FY+BH/2,CZ);scene.add(bk);
   // sides
-  [[WX-BD/2,FY+BH/2,CZ-BW/2],[WX-BD/2,FY+BH/2,CZ+BW/2]].forEach(([x,y,z])=>{
-    const s=new THREE.Mesh(new THREE.BoxGeometry(BD,BH,0.12),woodLight);
-    s.position.set(x,y,z);scene.add(s);
+  [CZ-BW/2,CZ+BW/2].forEach(z=>{
+    const s=new THREE.Mesh(new THREE.BoxGeometry(BD,BH,0.1),woodLight);
+    s.position.set(WX-BD/2,FY+BH/2,z);scene.add(s);
   });
-  // top & bottom boards
-  [[FY+BH+0.06],[FY-0.06]].forEach(([y])=>{
+  // top & bottom
+  [FY+BH+0.06,FY-0.06].forEach(y=>{
     const b=new THREE.Mesh(new THREE.BoxGeometry(BD,0.12,BW+0.12),woodLight);
     b.position.set(WX-BD/2,y,CZ);scene.add(b);
   });
-  // 4 shelf boards
-  [1.2,2.4,3.65,4.9].forEach(sh=>{
+  // shelves
+  [1.2,2.45,3.7,4.95].forEach(sh=>{
     const s=new THREE.Mesh(new THREE.BoxGeometry(BD,0.09,BW),woodMid);
     s.position.set(WX-BD/2,FY+sh,CZ);scene.add(s);
   });
+  // crown
+  const crown=new THREE.Mesh(new THREE.BoxGeometry(BD+0.1,0.2,BW+0.2),woodLight);
+  crown.position.set(WX-BD/2,FY+BH+0.16,CZ);scene.add(crown);
 
-  // ── crown moulding on top ──
-  const crown=new THREE.Mesh(new THREE.BoxGeometry(BD+0.1,0.18,BW+0.18),woodLight);
-  crown.position.set(WX-BD/2,FY+BH+0.15,CZ);scene.add(crown);
+  // ── each shelf = one canvas-texture plane with painted books ──
+  const BOOK_COLS=['#e63946','#457b9d','#2a9d8f','#e9c46a','#f4a261',
+    '#6d2b8f','#c04080','#80b918','#ff6b6b','#264653',
+    '#f72585','#4cc9f0','#7b2d8b','#ffd166','#06d6a0',
+    '#118ab2','#ef476f','#ffd60a','#3a86ff','#8338ec'];
 
-  // ── books on each shelf ──
-  const BOOK_COLS=[
-    0xe63946,0x457b9d,0x2a9d8f,0xe9c46a,0xf4a261,
-    0x6d2b8f,0xc04080,0x80b918,0xff6b6b,0x264653,
-    0xf72585,0x4cc9f0,0x7b2d8b,0xffd166,0x06d6a0,
-    0x118ab2,0xef476f,0xffd60a,0x3a86ff,0x8338ec
-  ];
-  let ci=0;
-  [0.12,1.32,2.52,3.77].forEach(sh=>{
-    let bz=CZ-BW/2+0.18;
-    while(bz<CZ+BW/2-0.18){
-      const bw=0.16+r()*0.14; // thickness along Z
-      const bh=0.55+r()*0.52; // height
-      const col=BOOK_COLS[ci++%BOOK_COLS.length];
-      const bmat=new THREE.MeshPhongMaterial({color:col,shininess:25});
-      const book=new THREE.Mesh(new THREE.BoxGeometry(BD*0.72,bh,bw),bmat);
-      book.position.set(WX-BD*0.64,FY+sh+bh/2,bz+bw/2);
-      scene.add(book);
-      // spine highlight
-      const spine=new THREE.Mesh(new THREE.BoxGeometry(0.02,bh*0.85,bw*0.7),
-        new THREE.MeshPhongMaterial({color:0xffffff,transparent:true,opacity:0.12}));
-      spine.position.set(WX-BD*0.26,FY+sh+bh/2,bz+bw/2);
-      scene.add(spine);
-      bz+=bw+0.025+r()*0.02;
+  [0.12,1.32,2.52,3.77].forEach((sh,si)=>{
+    const CW=512, CH2=128;
+    const cv=document.createElement('canvas');cv.width=CW;cv.height=CH2;
+    const c=cv.getContext('2d');
+    c.fillStyle='#3a1e05';c.fillRect(0,0,CW,CH2);
+    let px=4;let bi=si*5;
+    while(px<CW-4){
+      const bw=Math.floor(18+r()*16);
+      const bh=Math.floor(70+r()*50);
+      const col=BOOK_COLS[(bi++)%BOOK_COLS.length];
+      const by=CH2-4-bh;
+      c.fillStyle=col;c.fillRect(px,by,bw,bh);
+      // spine line
+      c.fillStyle='rgba(255,255,255,0.18)';c.fillRect(px+2,by+4,2,bh-8);
+      // top highlight
+      c.fillStyle='rgba(255,255,255,0.12)';c.fillRect(px,by,bw,3);
+      px+=bw+2+Math.floor(r()*3);
     }
-    // occasional leaning book
-    const lb=new THREE.Mesh(new THREE.BoxGeometry(BD*0.65,0.55+r()*0.3,0.15+r()*0.1),
-      new THREE.MeshPhongMaterial({color:BOOK_COLS[(ci+3)%BOOK_COLS.length],shininess:20}));
-    lb.position.set(WX-BD*0.64,FY+sh+0.14,CZ+BW/2-0.35-r()*0.5);
-    lb.rotation.z=0.38+r()*0.22;
-    scene.add(lb);
+    const tex=new THREE.CanvasTexture(cv);
+    const shelf=new THREE.Mesh(
+      new THREE.PlaneGeometry(BD*0.82,1.1),
+      new THREE.MeshBasicMaterial({map:tex,side:THREE.DoubleSide})
+    );
+    shelf.rotation.y=-Math.PI/2;
+    shelf.position.set(WX-BD*0.6,FY+sh+0.55,CZ);
+    scene.add(shelf);
   });
 
   // ── decorative objects on top ──
-  // small plant pot
+  // plant
   const potM=new THREE.MeshPhongMaterial({color:0xc1440e,shininess:30});
-  const pot=new THREE.Mesh(new THREE.CylinderGeometry(0.18,0.13,0.32,14),potM);
-  pot.position.set(WX-BD*0.55,FY+BH+0.22,CZ-BW/2+0.5);scene.add(pot);
-  const leaf=new THREE.Mesh(new THREE.SphereGeometry(0.22,8,8),
-    new THREE.MeshPhongMaterial({color:0x2d8a2d,shininess:10}));
-  leaf.scale.set(1,0.7,1);leaf.position.set(WX-BD*0.55,FY+BH+0.56,CZ-BW/2+0.5);scene.add(leaf);
-  // small trophy / cup
-  const cupM=new THREE.MeshPhongMaterial({color:0xffd700,shininess:120,specular:0xffffaa});
-  const cup=new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.1,0.35,12),cupM);
-  cup.position.set(WX-BD*0.55,FY+BH+0.23,CZ+BW/2-0.55);scene.add(cup);
-  const cupTop=new THREE.Mesh(new THREE.SphereGeometry(0.15,10,8),cupM);
-  cupTop.scale.y=0.5;cupTop.position.set(WX-BD*0.55,FY+BH+0.44,CZ+BW/2-0.55);scene.add(cupTop);
-  // small framed photo
-  const frmM=new THREE.MeshPhongMaterial({color:0xf5d78e,shininess:60});
-  const frm=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.55,0.42),frmM);
-  frm.position.set(WX-BD*0.5,FY+BH+0.39,CZ+0.2);scene.add(frm);
-  const frmIn=new THREE.Mesh(new THREE.BoxGeometry(0.07,0.44,0.32),
-    new THREE.MeshBasicMaterial({color:0x7ec8e3}));
-  frmIn.position.set(WX-BD*0.46,FY+BH+0.39,CZ+0.2);scene.add(frmIn);
-
-  // ── spotlight on bookshelf ──
-  const bsLight=new THREE.SpotLight(0xfff5e0,0.8,12,Math.PI*0.28,0.5);
-  bsLight.position.set(WX-3,FY+BH+1,CZ);
-  bsLight.target.position.set(WX-BD,FY+BH/2,CZ);
-  scene.add(bsLight);scene.add(bsLight.target);
+  const pot=new THREE.Mesh(new THREE.CylinderGeometry(0.18,0.13,0.32,10),potM);
+  pot.position.set(WX-0.55,FY+BH+0.22,CZ-2.5);scene.add(pot);
+  const leaf=new THREE.Mesh(new THREE.SphereGeometry(0.22,8,6),
+    new THREE.MeshPhongMaterial({color:0x2d8a2d}));
+  leaf.scale.set(1,0.65,1);leaf.position.set(WX-0.55,FY+BH+0.54,CZ-2.5);scene.add(leaf);
+  // gold cup
+  const cupM=new THREE.MeshPhongMaterial({color:0xffd700,shininess:100});
+  const cup=new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.1,0.35,10),cupM);
+  cup.position.set(WX-0.55,FY+BH+0.23,CZ+2.5);scene.add(cup);
+  const cupT=new THREE.Mesh(new THREE.SphereGeometry(0.15,8,6),cupM);
+  cupT.scale.y=0.5;cupT.position.set(WX-0.55,FY+BH+0.44,CZ+2.5);scene.add(cupT);
 }
 
 function addFlowerPot(x, z, col){
