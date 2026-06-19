@@ -1314,110 +1314,175 @@ function updateOrbit(){
 /* ══ WALL NOTES ══ */
 function addWallNotes(){
   const MSGS=[
-    'С Днём\nРождения! 🎂',
-    'Ты самая\nособенная\nи любимая! 💖',
-    'Пусть все\nмечты\nсбудутся! ✨',
-    'Счастья,\nздоровья\nи любви! 🌸',
-    'Ты лучшая!\nТак держать! 🌟',
-    'Много радости\nи улыбок\nкаждый день! 😊',
-    'Близкие люди\nвсегда\nрядом! 🤍',
-    'Много\nбараката\nтебе! 🌙',
-    'Успехов\nво всём\nв жизни! 🚀',
+    {title:'С Днём\nРождения!',emoji:'🎂',sub:''},
+    {title:'Ты самая\nособенная\nи любимая!',emoji:'💖',sub:''},
+    {title:'Пусть все\nмечты\nсбудутся!',emoji:'✨',sub:''},
+    {title:'Счастья,\nздоровья\nи любви!',emoji:'🌸',sub:''},
+    {title:'Ты лучшая!\nТак держать!',emoji:'🌟',sub:''},
+    {title:'Много радости\nи улыбок\nкаждый день!',emoji:'😊',sub:''},
+    {title:'Близкие люди\nвсегда рядом!',emoji:'🤍',sub:''},
+    {title:'Много\nбараката тебе!',emoji:'🌙',sub:''},
+    {title:'Успехов во\nвсём в жизни!',emoji:'🚀',sub:''},
   ];
-  const BGCOLS=[0xfffde7,0xfce4ec,0xe3f2fd,0xe8f5e9,0xf3e5f5,0xfff3e0,0xfff8e1,0xe8eaf6,0xe0f7fa];
-  const MAGCOLS=[0xff3333,0xff66aa,0x3399ff,0x33cc66,0xcc44ff,0xffcc00,0xff8844,0x7c4dff,0x00bcd4];
-  // 9 notes — 5 in top row, 4 in bottom row, well spaced (3.2 wide each, 4.0 gap)
+
+  // Each note has its own palette: [bg1, bg2, borderCol, textCol, accentCol]
+  const PALETTES=[
+    ['#fff9e6','#fff3c4','#f5c842','#6b3a00','#f5c842'],
+    ['#ffe0ef','#ffc8e0','#f06292','#7b003a','#f06292'],
+    ['#e8f0ff','#d0e4ff','#6699ff','#002080','#6699ff'],
+    ['#e8f8ee','#c8f0d8','#33bb66','#004422','#33bb66'],
+    ['#f5e8ff','#ead0ff','#aa55ff','#3a006b','#aa55ff'],
+    ['#fff5e0','#ffe4b0','#ffaa00','#5a3000','#ffaa00'],
+    ['#e0f8ff','#c0eeff','#22aadd','#003355','#22aadd'],
+    ['#ece8ff','#d8d0ff','#7766ff','#1a0066','#7766ff'],
+    ['#e0fff8','#b8ffee','#00ccaa','#003322','#00ccaa'],
+  ];
+  const MAGCOLS=[0xf5c842,0xf06292,0x6699ff,0x33bb66,0xaa55ff,0xffaa00,0x22aadd,0x7766ff,0x00ccaa];
+
   const SPOTS=[
-    [-8.0,3.0],[-4.0,3.2],[0,2.9],[4.0,3.2],[8.0,3.0],  // row 1
-    [-6.0,1.0],[-2.0,1.1],[2.0,1.1],[6.0,1.0]            // row 2
+    [-8.0,3.0],[-4.0,3.2],[0,2.9],[4.0,3.2],[8.0,3.0],
+    [-6.0,1.0],[-2.0,1.1],[2.0,1.1],[6.0,1.0]
   ];
   const WZ=-9.5;
 
-  function snoopyFace(nc,cx,cy,s){
-    // left ear
-    nc.fillStyle='#111';nc.beginPath();
-    nc.ellipse(cx-s*.38,cy+s*.15,s*.13,s*.26,-0.18,0,Math.PI*2);nc.fill();
-    // head
-    nc.fillStyle='#fff';nc.strokeStyle='#222';nc.lineWidth=s*.045;
-    nc.beginPath();nc.arc(cx,cy,s*.44,0,Math.PI*2);nc.fill();nc.stroke();
-    // right ear
-    nc.fillStyle='#111';nc.beginPath();
-    nc.ellipse(cx+s*.36,cy+s*.12,s*.11,s*.2,0.18,0,Math.PI*2);nc.fill();
-    // snout
-    nc.fillStyle='#f5f5f0';nc.strokeStyle='#222';nc.lineWidth=s*.035;
-    nc.beginPath();nc.ellipse(cx+s*.19,cy+s*.14,s*.21,s*.14,0,0,Math.PI*2);nc.fill();nc.stroke();
-    // nose
-    nc.fillStyle='#111';nc.beginPath();
-    nc.ellipse(cx+s*.18,cy+s*.06,s*.065,s*.044,0,0,Math.PI*2);nc.fill();
-    // eye
-    nc.beginPath();nc.arc(cx-s*.04,cy-s*.06,s*.048,0,Math.PI*2);nc.fill();
-    // smile
-    nc.strokeStyle='#222';nc.lineWidth=s*.035;nc.beginPath();
-    nc.arc(cx+s*.18,cy+s*.2,s*.09,0,Math.PI);nc.stroke();
+  function roundRect(nc,x,y,w,h,r){
+    nc.beginPath();
+    nc.moveTo(x+r,y);nc.lineTo(x+w-r,y);nc.arcTo(x+w,y,x+w,y+r,r);
+    nc.lineTo(x+w,y+h-r);nc.arcTo(x+w,y+h,x+w-r,y+h,r);
+    nc.lineTo(x+r,y+h);nc.arcTo(x,y+h,x,y+h-r,r);
+    nc.lineTo(x,y+r);nc.arcTo(x,y,x+r,y,r);
+    nc.closePath();
+  }
+
+  function drawStar(nc,cx,cy,r,col){
+    nc.save();nc.fillStyle=col;nc.globalAlpha=0.55;
+    nc.translate(cx,cy);
+    nc.beginPath();
+    for(let i=0;i<5;i++){
+      const a=i*Math.PI*2/5-Math.PI/2;
+      const b=a+Math.PI/5;
+      nc.lineTo(Math.cos(a)*r,Math.sin(a)*r);
+      nc.lineTo(Math.cos(b)*r*.42,Math.sin(b)*r*.42);
+    }
+    nc.closePath();nc.fill();nc.restore();
+  }
+
+  function drawHeart(nc,cx,cy,s,col){
+    nc.save();nc.fillStyle=col;nc.globalAlpha=0.5;
+    nc.translate(cx,cy);nc.scale(s,s);
+    nc.beginPath();
+    nc.moveTo(0,0);nc.bezierCurveTo(-1,-1,-2,.5,0,2);
+    nc.bezierCurveTo(2,.5,1,-1,0,0);
+    nc.fill();nc.restore();
   }
 
   SPOTS.forEach(([px,py],i)=>{
+    const W=360,H=300;
     const cv2=document.createElement('canvas');
-    cv2.width=320;cv2.height=280;
+    cv2.width=W;cv2.height=H;
     const nc=cv2.getContext('2d');
+    const [bg1,bg2,borderCol,textCol,accentCol]=PALETTES[i];
 
-    // paper background
-    const bg=nc.createLinearGradient(0,0,0,280);
-    const hex='#'+BGCOLS[i].toString(16).padStart(6,'0');
-    bg.addColorStop(0,hex);bg.addColorStop(1,'rgba(0,0,0,0.05)');
-    nc.fillStyle=bg;nc.fillRect(0,0,320,280);
+    // ── paper shadow (inner) ──
+    nc.save();
+    roundRect(nc,6,8,W-12,H-12,18);
+    nc.fillStyle='rgba(0,0,0,0.18)';nc.fill();
+    nc.restore();
 
-    // subtle ruled lines
-    nc.strokeStyle='rgba(0,0,0,0.09)';nc.lineWidth=1;
-    for(let y=148;y<265;y+=22){nc.beginPath();nc.moveTo(22,y);nc.lineTo(298,y);nc.stroke();}
+    // ── paper body ──
+    nc.save();
+    roundRect(nc,4,4,W-8,H-10,16);
+    const bg=nc.createLinearGradient(0,0,0,H);
+    bg.addColorStop(0,bg1);bg.addColorStop(1,bg2);
+    nc.fillStyle=bg;nc.fill();
+    // border
+    nc.strokeStyle=borderCol;nc.lineWidth=3.5;nc.stroke();
+    nc.restore();
 
-    // Snoopy top-right
-    snoopyFace(nc,252,54,58);
+    // ── decorative inner border (dashed) ──
+    nc.save();
+    roundRect(nc,14,14,W-28,H-24,10);
+    nc.strokeStyle=accentCol;nc.lineWidth=1.5;nc.globalAlpha=0.35;
+    nc.setLineDash([6,5]);nc.stroke();
+    nc.setLineDash([]);nc.globalAlpha=1;
+    nc.restore();
 
-    // message text
-    nc.fillStyle='#1a1a2e';nc.font='bold 26px Arial';nc.textAlign='center';
-    MSGS[i].split('\n').forEach((ln,li)=>nc.fillText(ln,130,152+li*34));
+    // ── top colour banner ──
+    nc.save();
+    nc.beginPath();
+    nc.moveTo(4,4+16);nc.arcTo(4,4,4+16,4,16);
+    nc.lineTo(W-4-16,4);nc.arcTo(W-4,4,W-4,4+16,16);
+    nc.lineTo(W-4,52);nc.lineTo(4,52);nc.closePath();
+    const banner=nc.createLinearGradient(0,4,0,52);
+    banner.addColorStop(0,accentCol);banner.addColorStop(1,bg2);
+    nc.fillStyle=banner;nc.globalAlpha=0.75;nc.fill();
+    nc.restore();
+
+    // ── emoji big in banner ──
+    nc.font='34px serif';nc.textAlign='left';nc.globalAlpha=1;
+    nc.fillText(MSGS[i].emoji, 18, 44);
+
+    // ── small decorative stars / hearts ──
+    const deco=[drawStar,drawHeart,drawStar,drawHeart,drawStar,drawHeart,drawStar,drawHeart,drawStar];
+    deco[i](nc, W-32, 28, 13, accentCol);
+    drawStar(nc, W-56, 22, 7, accentCol);
+    drawStar(nc, 18, H-22, 8, accentCol);
+    drawStar(nc, W-22, H-26, 9, accentCol);
+
+    // ── message text ──
+    nc.textAlign='center';nc.globalAlpha=1;
+    const lines=MSGS[i].title.split('\n');
+    const fontSize=lines.length<=2?32:26;
+    nc.font=`bold ${fontSize}px Arial`;
+    const startY=lines.length<=2?130:108;
+    lines.forEach((ln,li)=>{
+      // text shadow
+      nc.fillStyle='rgba(0,0,0,0.12)';
+      nc.fillText(ln,W/2+1,startY+li*(fontSize+10)+1);
+      nc.fillStyle=textCol;
+      nc.fillText(ln,W/2,startY+li*(fontSize+10));
+    });
+
+    // ── bottom decorative rule ──
+    nc.save();
+    const rl=nc.createLinearGradient(24,0,W-24,0);
+    rl.addColorStop(0,'transparent');rl.addColorStop(0.5,accentCol);rl.addColorStop(1,'transparent');
+    nc.strokeStyle=rl;nc.lineWidth=2;nc.globalAlpha=0.6;
+    nc.beginPath();nc.moveTo(24,H-28);nc.lineTo(W-24,H-28);nc.stroke();
+    nc.restore();
 
     const tex=new THREE.CanvasTexture(cv2);
-    const rot=(Math.random()-.5)*.14;
+    const rot=(Math.random()-.5)*.12;
 
-    // note plane — bigger
     const note=new THREE.Mesh(
-      new THREE.PlaneGeometry(3.2,2.5),
-      new THREE.MeshLambertMaterial({map:tex,side:THREE.DoubleSide})
+      new THREE.PlaneGeometry(3.4,2.8),
+      new THREE.MeshLambertMaterial({map:tex,side:THREE.DoubleSide,transparent:true})
     );
     note.position.set(px,py,WZ+.06);
     note.rotation.z=rot;
     scene.add(note);
 
-    // slight drop shadow
     const shadow=new THREE.Mesh(
-      new THREE.PlaneGeometry(3.28,2.58),
-      new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.22})
+      new THREE.PlaneGeometry(3.5,2.9),
+      new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.28})
     );
-    shadow.position.set(px+.07,py-.07,WZ+.03);
+    shadow.position.set(px+.09,py-.09,WZ+.02);
     shadow.rotation.z=rot;
     scene.add(shadow);
 
-    // magnet — small disc on top
-    const mx=px+(.5-Math.random())*.6;
-    const my=py+.95;
+    // magnet
+    const mx=px+(.5-Math.random())*.5;
+    const my=py+1.08;
     const mag=new THREE.Mesh(
-      new THREE.CylinderGeometry(.12,.12,.06,16),
-      new THREE.MeshPhongMaterial({color:MAGCOLS[i],shininess:160,emissive:MAGCOLS[i],emissiveIntensity:.15})
+      new THREE.CylinderGeometry(.13,.13,.07,16),
+      new THREE.MeshPhongMaterial({color:MAGCOLS[i],shininess:180,emissive:MAGCOLS[i],emissiveIntensity:.2})
     );
-    mag.position.set(mx,my,WZ+.14);
-    mag.rotation.x=Math.PI/2;
-    scene.add(mag);
-
-    // magnet shine ring
+    mag.position.set(mx,my,WZ+.16);mag.rotation.x=Math.PI/2;scene.add(mag);
     const ring=new THREE.Mesh(
-      new THREE.TorusGeometry(.12,.022,8,20),
-      new THREE.MeshPhongMaterial({color:0xffffff,transparent:true,opacity:.4,shininess:200})
+      new THREE.TorusGeometry(.13,.024,8,20),
+      new THREE.MeshPhongMaterial({color:0xffffff,transparent:true,opacity:.45,shininess:220})
     );
-    ring.position.copy(mag.position);
-    ring.rotation.x=Math.PI/2;
-    scene.add(ring);
+    ring.position.copy(mag.position);ring.rotation.x=Math.PI/2;scene.add(ring);
   });
 }
 
