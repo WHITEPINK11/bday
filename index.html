@@ -861,13 +861,105 @@ function buildRoom(){
     mural.rotation.y=Math.PI/2;mural.position.set(-RW/2+.05,(CH+FY)/2,CZ);scene.add(mural);
   });
 
-  // RIGHT WALL mural — bookshelf photo
-  loader.load('images/bookshelf-wall.jpg', tex=>{
-    tex.minFilter=THREE.LinearFilter;
-    const mural=new THREE.Mesh(new THREE.PlaneGeometry(D+2, CH-FY),
-      new THREE.MeshBasicMaterial({map:tex}));
-    mural.rotation.y=-Math.PI/2;mural.position.set(RW/2-.05,(CH+FY)/2,CZ);scene.add(mural);
-  });
+  // RIGHT WALL — hand-drawn bookshelf texture
+  const bsTexCV=document.createElement('canvas');bsTexCV.width=1024;bsTexCV.height=1024;
+  const bc=bsTexCV.getContext('2d');
+  const rngB=(s)=>{let x=s;return()=>{x=(x*16807)%2147483647;return(x-1)/2147483646;};};
+  const rb=rngB(13);
+  // wood background
+  const woodGrad=bc.createLinearGradient(0,0,0,1024);
+  woodGrad.addColorStop(0,'#5c3310');woodGrad.addColorStop(0.5,'#7a4520');woodGrad.addColorStop(1,'#5c3310');
+  bc.fillStyle=woodGrad;bc.fillRect(0,0,1024,1024);
+  // grain lines
+  bc.strokeStyle='rgba(0,0,0,0.15)';bc.lineWidth=1;
+  for(let i=0;i<30;i++){bc.beginPath();bc.moveTo(0,rb()*1024);bc.lineTo(1024,rb()*1024+rb()*60-30);bc.stroke();}
+
+  const BCOLS=['#c0392b','#2980b9','#27ae60','#f39c12','#8e44ad','#e67e22',
+    '#16a085','#d35400','#1abc9c','#2c3e50','#e74c3c','#3498db',
+    '#2ecc71','#f1c40f','#9b59b6','#e91e63','#00bcd4','#ff5722',
+    '#607d8b','#795548','#ff9800','#4caf50','#673ab7','#009688'];
+
+  const SHELF_H=118; // height of each shelf section (pixels)
+  const NROWS=Math.floor(1024/SHELF_H);
+  const SHELF_BOARD=14;
+
+  for(let row=0;row<NROWS;row++){
+    const rowY=row*SHELF_H;
+    const bookAreaH=SHELF_H-SHELF_BOARD;
+
+    // shelf board
+    const shelfGrad=bc.createLinearGradient(0,rowY+bookAreaH,0,rowY+SHELF_H);
+    shelfGrad.addColorStop(0,'#a0681a');shelfGrad.addColorStop(0.4,'#c8882a');shelfGrad.addColorStop(1,'#7a4c12');
+    bc.fillStyle=shelfGrad;bc.fillRect(0,rowY+bookAreaH,1024,SHELF_BOARD);
+    // shelf edge highlight
+    bc.fillStyle='rgba(255,220,150,0.3)';bc.fillRect(0,rowY+bookAreaH,1024,2);
+    bc.fillStyle='rgba(0,0,0,0.25)';bc.fillRect(0,rowY+SHELF_H-2,1024,2);
+
+    // books on this shelf
+    let bx=4;
+    while(bx<1020){
+      const bw=Math.floor(28+rb()*38); // book width
+      const bh=Math.floor(bookAreaH*0.62+rb()*bookAreaH*0.35); // book height
+      const by=rowY+bookAreaH-bh; // books sit on shelf
+      const col=BCOLS[Math.floor(rb()*BCOLS.length)];
+
+      // book body
+      const bookGrad=bc.createLinearGradient(bx,0,bx+bw,0);
+      bookGrad.addColorStop(0,col);
+      bookGrad.addColorStop(0.08,'rgba(255,255,255,0.22)');
+      bookGrad.addColorStop(0.15,col);
+      bookGrad.addColorStop(0.9,col);
+      bookGrad.addColorStop(1,'rgba(0,0,0,0.3)');
+      bc.fillStyle=bookGrad;bc.fillRect(bx,by,bw,bh);
+
+      // spine line separator
+      bc.fillStyle='rgba(0,0,0,0.35)';bc.fillRect(bx,by,1,bh);
+      bc.fillStyle='rgba(255,255,255,0.15)';bc.fillRect(bx+1,by,1,bh);
+
+      // top edge of book (lighter)
+      bc.fillStyle='rgba(255,255,255,0.25)';bc.fillRect(bx,by,bw,3);
+
+      // horizontal stripe decoration (some books)
+      if(rb()<0.5){
+        bc.fillStyle='rgba(255,255,255,0.18)';
+        bc.fillRect(bx+2,by+Math.floor(bh*0.3),bw-4,Math.floor(bh*0.08));
+        if(rb()<0.4){
+          bc.fillRect(bx+2,by+Math.floor(bh*0.5),bw-4,Math.floor(bh*0.06));
+        }
+      }
+
+      // small title text on spine (for wider books)
+      if(bw>40){
+        bc.save();bc.translate(bx+bw/2,by+bh/2);bc.rotate(-Math.PI/2);
+        bc.fillStyle='rgba(255,255,255,0.7)';bc.font=`bold ${Math.floor(bw*0.28)}px Arial`;
+        bc.textAlign='center';bc.textBaseline='middle';
+        const titles=['Love','Life','Art','Joy','Hope','Dream','Star','Moon','Sun','Magic'];
+        bc.fillText(titles[Math.floor(rb()*titles.length)],0,0);
+        bc.restore();
+      }
+
+      bx+=bw+2;
+    }
+
+    // occasional decorative object on shelf
+    if(rb()<0.4){
+      const ox=Math.floor(100+rb()*800);
+      const oy=rowY+bookAreaH;
+      // small vase or figurine
+      bc.fillStyle=rb()<0.5?'#c0392b':'#f5d78e';
+      bc.beginPath();bc.ellipse(ox,oy-18,12,18,0,0,Math.PI*2);bc.fill();
+      bc.fillStyle='rgba(255,255,255,0.2)';
+      bc.beginPath();bc.ellipse(ox-4,oy-24,4,8,0,0,Math.PI*2);bc.fill();
+    }
+  }
+
+  const bsTex=new THREE.CanvasTexture(bsTexCV);
+  bsTex.minFilter=THREE.LinearFilter;
+  const bsWall=new THREE.Mesh(new THREE.PlaneGeometry(D+2, CH-FY),
+    new THREE.MeshBasicMaterial({map:bsTex}));
+  bsWall.rotation.y=-Math.PI/2;
+  bsWall.position.set(RW/2-.05,(CH+FY)/2,CZ);
+  scene.add(bsWall);
   [
     {src:'images/photo_2026-06-19_05-59-45.jpg',x:-7.2,y:5.8,w:3.6,h:3.6},
     {src:'images/photo_2026-06-19_05-59-41.jpg',x:-2.4,y:5.6,w:3.4,h:4.0},
