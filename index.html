@@ -860,6 +860,14 @@ function buildRoom(){
       new THREE.MeshBasicMaterial({map:tex}));
     mural.rotation.y=Math.PI/2;mural.position.set(-RW/2+.05,(CH+FY)/2,CZ);scene.add(mural);
   });
+
+  // RIGHT WALL mural — bookshelf photo
+  loader.load('images/bookshelf-wall.jpg', tex=>{
+    tex.minFilter=THREE.LinearFilter;
+    const mural=new THREE.Mesh(new THREE.PlaneGeometry(D+2, CH-FY),
+      new THREE.MeshBasicMaterial({map:tex}));
+    mural.rotation.y=-Math.PI/2;mural.position.set(RW/2-.05,(CH+FY)/2,CZ);scene.add(mural);
+  });
   [
     {src:'images/photo_2026-06-19_05-59-45.jpg',x:-7.2,y:5.8,w:3.6,h:3.6},
     {src:'images/photo_2026-06-19_05-59-41.jpg',x:-2.4,y:5.6,w:3.4,h:4.0},
@@ -1757,7 +1765,7 @@ function initThree(){
   initOrbit(renderer.domElement);
 
   const _fns=[
-    ['buildRoom',buildRoom],['buildBookshelf',buildBookshelf],
+    ['buildRoom',buildRoom],
     ['buildTable',buildTable],['buildCake',buildCake],
     ['addDecorations',addDecorations],['addCandles',addCandles],
     ['addRoomFlowers',addRoomFlowers],['addWallNotes',addWallNotes],
