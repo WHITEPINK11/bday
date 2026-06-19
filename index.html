@@ -1585,6 +1585,70 @@ function addTablePhoto(){
   sh.rotation.x=-Math.PI/2;sh.position.set(0,0.01,0.15);grp.add(sh);
 }
 
+/* ══ MOVIE POSTERS — front wall ══ */
+function addMoviePosters(){
+  const Z_FRONT=7;
+  const FY=-2, CH=8;
+  const loader=new THREE.TextureLoader();
+
+  const POSTERS=[
+    {src:'images/poster1.jpg', x:-6.0},
+    {src:'images/poster2.jpg', x:-2.0},
+    {src:'images/poster3.jpg', x: 2.0},
+    {src:'images/poster4.jpg', x: 6.0},
+  ];
+  const PW=3.2, PH=4.4;
+  const PY=FY+(CH-FY)/2+0.2;
+
+  POSTERS.forEach(({src,x})=>{
+    // shadow
+    const sh=new THREE.Mesh(new THREE.PlaneGeometry(PW+0.5,PH+0.5),
+      new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:0.3}));
+    sh.position.set(x+0.08, PY-0.08, Z_FRONT-0.04);
+    sh.rotation.y=Math.PI;scene.add(sh);
+
+    // dark frame
+    const frame=new THREE.Mesh(new THREE.PlaneGeometry(PW+0.28,PH+0.28),
+      new THREE.MeshPhongMaterial({color:0x1a1008,shininess:40}));
+    frame.position.set(x,PY,Z_FRONT-0.05);
+    frame.rotation.y=Math.PI;scene.add(frame);
+
+    // gold inner frame strip
+    const gold=new THREE.Mesh(new THREE.PlaneGeometry(PW+0.14,PH+0.14),
+      new THREE.MeshPhongMaterial({color:0xc8a040,shininess:90,specular:0xffeeaa}));
+    gold.position.set(x,PY,Z_FRONT-0.06);
+    gold.rotation.y=Math.PI;scene.add(gold);
+
+    // poster image
+    loader.load(src, tex=>{
+      tex.minFilter=THREE.LinearFilter;
+      const pic=new THREE.Mesh(new THREE.PlaneGeometry(PW,PH),
+        new THREE.MeshBasicMaterial({map:tex}));
+      pic.position.set(x,PY,Z_FRONT-0.07);
+      pic.rotation.y=Math.PI;scene.add(pic);
+    });
+
+    // small label below
+    const labelCv=document.createElement('canvas');
+    labelCv.width=256;labelCv.height=40;
+    const lc=labelCv.getContext('2d');
+    lc.fillStyle='#1a1008';lc.fillRect(0,0,256,40);
+    lc.fillStyle='#c8a040';lc.font='bold 18px Arial';lc.textAlign='center';
+    lc.fillText('★  ★  ★  ★  ★',128,26);
+    const labelTex=new THREE.CanvasTexture(labelCv);
+    const label=new THREE.Mesh(new THREE.PlaneGeometry(PW+0.28,0.35),
+      new THREE.MeshBasicMaterial({map:labelTex}));
+    label.position.set(x,PY-PH/2-0.03,Z_FRONT-0.055);
+    label.rotation.y=Math.PI;scene.add(label);
+  });
+
+  // spotlight on poster wall
+  const spot=new THREE.SpotLight(0xfff8e8,1.4,18,Math.PI*0.4,0.4);
+  spot.position.set(0,CH-1,Z_FRONT-3.5);
+  spot.target.position.set(0,PY,Z_FRONT);
+  scene.add(spot);scene.add(spot.target);
+}
+
 /* ══ INIT THREE.JS ══ */
 function initThree(){
   const wrap=document.getElementById('s-cake');
@@ -1631,6 +1695,7 @@ function initThree(){
   addRoomFlowers();
   addWallNotes();
   addTablePhoto();
+  addMoviePosters();
 
   // Click detection (separate from orbit drag)
   let clickMoved=false,clickX=0,clickY=0;
